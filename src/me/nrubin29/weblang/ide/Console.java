@@ -1,7 +1,7 @@
 package me.nrubin29.weblang.ide;
 
 import me.nrubin29.weblang.Utils;
-import me.nrubin29.weblang.provider.IMDBProvider;
+import me.nrubin29.weblang.provider.ImdbProvider;
 import me.nrubin29.weblang.provider.Provider;
 import me.nrubin29.weblang.provider.Result;
 
@@ -49,7 +49,7 @@ public class Console extends JTextPane {
                     for (String line : code.split("\n")) {
                         if (line.startsWith("use")) {
                             if (line.split(" ")[1].equals("imdb")) {
-                                provider = new IMDBProvider();
+                                provider = new ImdbProvider();
                             } else {
                                 throw new Utils.InvalidCodeException("Attempted to use nonexistent provider.");
                             }

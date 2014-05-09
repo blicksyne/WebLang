@@ -1,5 +1,7 @@
 package me.nrubin29.weblang.provider;
 
+import me.nrubin29.weblang.Utils;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -9,7 +11,7 @@ import java.util.ArrayList;
 
 public abstract class Provider {
 
-    public abstract Result[] provide(String query) throws IOException;
+    public abstract Result[] provide(String query) throws IOException, Utils.InvalidCodeException;
 
     String[] read(String u) throws IOException {
         URLConnection c = new URL(u).openConnection();
@@ -26,4 +28,6 @@ public abstract class Provider {
 
         return lines.toArray(new String[lines.size()]);
     }
+
+    public abstract Key getKey(String str) throws Utils.InvalidCodeException;
 }

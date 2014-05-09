@@ -1,7 +1,9 @@
 package me.nrubin29.weblang.ide;
 
 import me.nrubin29.weblang.Utils;
+import me.nrubin29.weblang.Utils.InvalidCodeException;
 import me.nrubin29.weblang.provider.ImdbProvider;
+import me.nrubin29.weblang.provider.Key;
 import me.nrubin29.weblang.provider.Provider;
 import me.nrubin29.weblang.provider.Result;
 
@@ -10,8 +12,9 @@ import javax.swing.text.*;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Map;
 
 public class Console extends JTextPane {
 
@@ -61,17 +64,48 @@ public class Console extends JTextPane {
                             String query = line.substring(line.indexOf("\"") + 1, line.lastIndexOf("\""));
                             String varName = line.substring(line.indexOf("storeas ") + "storeas ".length());
                             vars.put(varName, provider.provide(query));
-                        } else if (line.equals("print")) {
-                            for (Map.Entry<String, Result[]> varEntry : vars.entrySet()) {
-                                System.out.println("[[[" + varEntry.getKey() + "]]]");
-                                for (Result result : varEntry.getValue()) {
-                                    System.out.println(result);
-                                }
-                            }
                         } else {
                             for (String varName : vars.keySet()) {
                                 if (line.startsWith(varName)) {
-                                    String call = line.substring((varName + "::").length());
+                                    String raw = line.substring((varName + "::").length());
+                                    String action = raw.substring(0, raw.indexOf("("));
+                                    String[] args = raw.substring(raw.indexOf("(") + 1, raw.lastIndexOf(")")).split(" ");
+
+                                    for (int i = 0; i < args.length; i++) {
+                                        args[i] = args[i].replaceAll(",", "").trim();
+                                    }
+
+                                    if (action.equals("print")) {
+                                        write("[[[" + varName + "]]]", MessageType.OUTPUT);
+                                        for (Result result : vars.get(varName)) {
+                                            write(result.toString(), MessageType.OUTPUT);
+                                        }
+                                    } else if (action.equals("filter")) {
+                                        ArrayList<Result> remove = new ArrayList<Result>();
+                                        String act = args[1].substring(0, args[1].indexOf(":")), arg = args[1].substring(args[1].indexOf(":") + 2, args[1].length() - 1);
+
+                                        for (Result r : vars.get(varName)) {
+                                            Key k = provider.getKey(args[0]);
+                                            if (r.getData(k) != null) {
+                                                if (act.equals("contains")) {
+                                                    if (!r.getData(k).contains(arg)) {
+                                                        remove.add(r);
+                                                    }
+                                                } else if (act.equals("notcontains")) {
+                                                    if (r.getData(k).contains(arg)) {
+                                                        remove.add(r);
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        ArrayList<Result> old = new ArrayList<Result>(Arrays.asList(vars.get(varName)));
+                                        old.removeAll(remove);
+                                        vars.remove(varName);
+                                        vars.put(varName, old.toArray(new Result[old.size()]));
+                                    } else {
+                                        throw new InvalidCodeException("Action " + action + " doesn't exist!");
+                                    }
                                 }
                             }
                         }

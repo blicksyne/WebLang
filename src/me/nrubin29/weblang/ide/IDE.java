@@ -40,13 +40,13 @@ public class IDE extends JFrame {
 
         add(text = new JTextPane());
 
-        console = new Console();
-
-        JScrollPane consoleScroll = new JScrollPane(console);
+        JScrollPane consoleScroll = new JScrollPane(console = new Console());
+        consoleScroll.setMaximumSize(new Dimension(getWidth(), 100));
         consoleScroll.setBorder(null);
         consoleScroll.getVerticalScrollBar().setPreferredSize(new Dimension(0, 0));
 
         consolePane = new JToolBar();
+        consolePane.setMaximumSize(new Dimension(getWidth(), 100));
         consolePane.setFloatable(false);
         consolePane.setVisible(false);
         consolePane.add(consoleScroll);
@@ -120,7 +120,11 @@ public class IDE extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (!consolePane.isVisible()) consolePane.setVisible(true);
+
                 console.run(text.getText());
+
+                if (horizontal.isSelected()) horizontal.doClick();
+                else vertical.doClick();
             }
         });
 

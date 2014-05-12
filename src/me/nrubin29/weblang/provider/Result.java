@@ -31,10 +31,10 @@ public class Result {
 
     @Override
     public String toString() {
-        String res = "-----\nResult ";
+        String res = "<html>";
 
         for (Map.Entry<Key, Object> e : data.entrySet()) {
-            res += e.getKey() + "=" + e.getValue() + "\n";
+            res += e.getKey() + "=" + e.getValue() + "<br/>";
         }
 
         return res;

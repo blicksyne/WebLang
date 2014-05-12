@@ -1,42 +1,20 @@
 package me.nrubin29.weblang.ide;
 
+import me.nrubin29.weblang.Filter;
 import me.nrubin29.weblang.Utils;
 import me.nrubin29.weblang.Utils.InvalidCodeException;
-import me.nrubin29.weblang.provider.ImdbProvider;
-import me.nrubin29.weblang.provider.Key;
-import me.nrubin29.weblang.provider.Provider;
-import me.nrubin29.weblang.provider.Result;
+import me.nrubin29.weblang.provider.*;
 
 import javax.swing.*;
-import javax.swing.text.*;
 import java.awt.*;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
-public class Console extends JTextPane {
-
-    private boolean waiting = false;
-    private String result = null;
+public class Console extends JPanel {
 
     public Console() {
-        ((AbstractDocument) getDocument()).setDocumentFilter(new Filter());
-
-        addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_UP) {
-                    e.consume();
-                } else if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                    if (waiting) result = getText().split("\n")[getText().split("\n").length - 1];
-                }
-            }
-        });
-
-        setEditable(false);
-        setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 16));
+        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
     }
 
     public void run(final String code) {
@@ -51,8 +29,18 @@ public class Console extends JTextPane {
                 try {
                     for (String line : code.split("\n")) {
                         if (line.startsWith("use")) {
+                            boolean success = false;
+
                             if (line.split(" ")[1].equals("imdb")) {
                                 provider = new ImdbProvider();
+                                success = true;
+                            } else if (line.split(" ")[1].equals("wikialyrics")) {
+                                provider = new WikiaLyricsProvider(line.split(" ")[2]);
+                                success = true;
+                            }
+
+                            if (success) {
+                                add(new ActionPanel("Selected provider " + provider.getName() + "."));
                             } else {
                                 throw new Utils.InvalidCodeException("Attempted to use nonexistent provider.");
                             }
@@ -63,40 +51,53 @@ public class Console extends JTextPane {
 
                             String query = line.substring(line.indexOf("\"") + 1, line.lastIndexOf("\""));
                             String varName = line.substring(line.indexOf("storeas ") + "storeas ".length());
+
+                            add(new ActionPanel("Starting query for \"" + query + "\" and storing to variable " + varName + "."));
+
                             vars.put(varName, provider.provide(query));
+
+                            add(new ActionPanel("Completed query. Found " + vars.get(varName).length + " results."));
                         } else {
                             for (String varName : vars.keySet()) {
                                 if (line.startsWith(varName)) {
                                     String raw = line.substring((varName + "::").length());
                                     String action = raw.substring(0, raw.indexOf("("));
-                                    String[] args = raw.substring(raw.indexOf("(") + 1, raw.lastIndexOf(")")).split(" ");
+                                    String[] args = raw.substring(raw.indexOf("(") + 1, raw.lastIndexOf(")")).split(", ");
 
                                     for (int i = 0; i < args.length; i++) {
-                                        args[i] = args[i].replaceAll(",", "").trim();
+                                        args[i] = args[i].trim();
                                     }
 
                                     if (action.equals("print")) {
-                                        write("[[[" + varName + "]]]", MessageType.OUTPUT);
-                                        for (Result result : vars.get(varName)) {
-                                            write(result.toString(), MessageType.OUTPUT);
+                                        add(new ActionPanel("Called print. Results:"));
+
+                                        for (Result res : vars.get(varName)) {
+                                            add(new ActionPanel(res.toString()));
                                         }
                                     } else if (action.equals("filter")) {
                                         ArrayList<Result> remove = new ArrayList<Result>();
-                                        String act = args[1].substring(0, args[1].indexOf(":")), arg = args[1].substring(args[1].indexOf(":") + 2, args[1].length() - 1);
+                                        Filter filter = Filter.from(args[1].substring(0, args[1].indexOf(":")));
+                                        String arg = args[1].substring(args[1].indexOf(":") + 2, args[1].length() - 1);
+                                        Key k = provider.getKey(args[0]);
 
                                         for (Result r : vars.get(varName)) {
-                                            Key k = provider.getKey(args[0]);
                                             if (r.getData(k) != null) {
-                                                if (act.equals("contains")) {
+                                                if (filter == Filter.CONTAINS) {
                                                     if (!r.getData(k).contains(arg)) {
                                                         remove.add(r);
                                                     }
-                                                } else if (act.equals("notcontains")) {
+                                                } else if (filter == Filter.NOTCONTAINS) {
                                                     if (r.getData(k).contains(arg)) {
                                                         remove.add(r);
                                                     }
                                                 }
                                             }
+                                        }
+
+                                        if (filter == Filter.CONTAINS) {
+                                            add(new ActionPanel("Removed all results that did not contain \"" + arg + "\"."));
+                                        } else if (filter == Filter.NOTCONTAINS) {
+                                            add(new ActionPanel("Removed all results that contained \"" + arg + "\"."));
                                         }
 
                                         ArrayList<Result> old = new ArrayList<Result>(Arrays.asList(vars.get(varName)));
@@ -112,119 +113,18 @@ public class Console extends JTextPane {
                     }
                 } catch (Exception e) {
                     Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
+                    add(new ActionPanel("An error has occurred! " + e.getMessage()));
                 }
             }
         }).start();
     }
 
-    public String prompt() {
-        setVisible(true);
-        getParent().requestFocusInWindow();
+    @Override
+    public Component add(Component comp) {
+        Component c = super.add(comp);
 
-        waiting = true;
-        setEditable(true);
+        getParent().getParent().validate();
 
-        while (result == null) {
-            try {
-                Thread.sleep(100);
-            } catch (Exception ignored) {
-            }
-        }
-
-        waiting = false;
-        setEditable(false);
-
-        String localResult = result;
-        result = null;
-        return localResult;
-    }
-
-    public void write(final String txt, final MessageType messageType) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    getDocument().insertString(getDocument().getLength(), txt + "\n", messageType.getAttributes());
-                } catch (Exception ignored) {
-                }
-
-                setCaret();
-            }
-        });
-    }
-
-    private int getLineOfOffset(int offset) throws BadLocationException {
-        Document doc = getDocument();
-        if (offset < 0) {
-            throw new BadLocationException("Can't translate offset to line", -1);
-        } else if (offset > doc.getLength()) {
-            throw new BadLocationException("Can't translate offset to line", doc.getLength() + 1);
-        } else {
-            Element map = doc.getDefaultRootElement();
-            return map.getElementIndex(offset);
-        }
-    }
-
-    private int getLineStartOffset(int line) throws BadLocationException {
-        Element map = getDocument().getDefaultRootElement();
-        if (line < 0) {
-            throw new BadLocationException("Negative line", -1);
-        } else if (line > map.getElementCount()) {
-            throw new BadLocationException("Given line too big", getDocument().getLength() + 1);
-        } else {
-            Element lineElem = map.getElement(line);
-            return lineElem.getStartOffset();
-        }
-    }
-
-    private void setCaret() {
-        try {
-            setCaretPosition(getDocument().getLength());
-        } catch (Exception ignored) {
-        }
-    }
-
-    public enum MessageType {
-        OUTPUT(Color.BLACK),
-        ERROR(Color.RED);
-
-        private final SimpleAttributeSet attributes;
-
-        MessageType(Color color) {
-            attributes = new SimpleAttributeSet();
-            StyleConstants.setForeground(attributes, color);
-        }
-
-        public SimpleAttributeSet getAttributes() {
-            return attributes;
-        }
-    }
-
-    private class Filter extends DocumentFilter {
-        @Override
-        public void insertString(final FilterBypass fb, final int offset, final String string, final AttributeSet attr)
-                throws BadLocationException {
-            if (getLineStartOffset(getLineOfOffset(offset)) == getLineStartOffset(getLineOfOffset(getDocument().getLength()))) {
-                super.insertString(fb, getDocument().getLength(), string, null);
-            }
-            setCaret();
-        }
-
-        @Override
-        public void remove(final FilterBypass fb, final int offset, final int length) throws BadLocationException {
-            if (getLineStartOffset(getLineOfOffset(offset)) == getLineStartOffset(getLineOfOffset(getDocument().getLength()))) {
-                super.remove(fb, offset, length);
-            }
-            setCaret();
-        }
-
-        @Override
-        public void replace(final FilterBypass fb, final int offset, final int length, final String string, final AttributeSet attrs)
-                throws BadLocationException {
-            if (getLineStartOffset(getLineOfOffset(offset)) == getLineStartOffset(getLineOfOffset(getDocument().getLength()))) {
-                super.replace(fb, offset, length, string, null);
-            }
-            setCaret();
-        }
+        return c;
     }
 }

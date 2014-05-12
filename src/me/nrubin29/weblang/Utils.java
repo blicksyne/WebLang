@@ -115,7 +115,7 @@ public class Utils {
         return builder.toString().trim();
     }
 
-    public static class ConsoleException extends Exception {
+    static class ConsoleException extends Exception {
         public ConsoleException(String msg) {
             super(msg);
         }

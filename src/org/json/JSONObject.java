@@ -438,7 +438,7 @@ public class JSONObject {
      * @return The object associated with the key.
      * @throws org.json.JSONException if the key is not found.
      */
-    Object get(String key) throws JSONException {
+    public Object get(String key) throws JSONException {
         if (key == null) {
             throw new JSONException("Null key.");
         }

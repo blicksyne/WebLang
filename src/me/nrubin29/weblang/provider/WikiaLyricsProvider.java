@@ -7,15 +7,15 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.ArrayList;
 
-public class ImdbProvider extends Provider {
+public class WikiaLyricsProvider extends Provider {
 
-    public ImdbProvider() {
-        super("IMDB");
+    public WikiaLyricsProvider(String arg) {
+        super("WikiaLyrics", arg);
     }
 
     @Override
     public Result[] provide(String query) throws IOException, Utils.InvalidCodeException {
-        String[] lines = read("http://www.imdb.com/xml/find?json=1&nr=1&tt=on&q=" + query.replaceAll(" ", "+"));
+        String[] lines = read("http://lyrics.wikia.com/api.php?func=" + getArg() + "&artist=" + query.replaceAll(" ", "_") + "&fmt=json");
         String line = "";
 
         for (String l : lines) {
@@ -26,10 +26,12 @@ public class ImdbProvider extends Provider {
         ArrayList<Result> results = new ArrayList<Result>();
 
         for (String sectionName : object.keySet()) {
-            JSONArray section = object.getJSONArray(sectionName);
-            for (int i = 0; i < section.length(); i++) {
-                JSONObject o = section.getJSONObject(i);
-                results.add(new Result(this, o.getMap()));
+            if (object.get(sectionName) instanceof JSONArray) {
+                JSONArray section = object.getJSONArray(sectionName);
+                for (int i = 0; i < section.length(); i++) {
+                    JSONObject o = section.getJSONObject(i);
+                    results.add(new Result(this, o.getMap()));
+                }
             }
         }
 
@@ -37,16 +39,14 @@ public class ImdbProvider extends Provider {
     }
 
     public Key getKey(String str) throws Utils.InvalidCodeException {
-        return ImdbKey.from(str);
+        return WikiaLyricsKey.from(str);
     }
 
-    public enum ImdbKey implements Key {
-        ID,
-        TITLE,
-        EPISODE_TITLE,
-        NAME,
-        DESCRIPTION,
-        TITLE_DESCRIPTION;
+    public enum WikiaLyricsKey implements Key {
+        AMAZONLINK,
+        SONGS,
+        ALBUM,
+        YEAR;
 
         @Override
         public String toString() {

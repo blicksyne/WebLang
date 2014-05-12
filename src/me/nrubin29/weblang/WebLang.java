@@ -1,6 +1,5 @@
 package me.nrubin29.weblang;
 
-import me.nrubin29.weblang.ide.Console;
 import me.nrubin29.weblang.ide.IDE;
 
 import javax.swing.*;
@@ -25,11 +24,11 @@ class WebLang {
                 e.printStackTrace();
                 if (e.getCause() != null) e.getCause().printStackTrace();
 
-                if (ide != null && !(e instanceof Utils.IDEException)) {
-                    ide.getConsole().write("Error: " + e, Console.MessageType.ERROR);
-                } else {
-                    JOptionPane.showMessageDialog(null, "Error: " + e, "Error", JOptionPane.ERROR_MESSAGE);
-                }
+//                if (ide != null && !(e instanceof Utils.IDEException)) {
+//                    ide.getConsole().write("Error: " + e, Console.MessageType.ERROR);
+//                } else {
+//                    JOptionPane.showMessageDialog(null, "Error: " + e, "Error", JOptionPane.ERROR_MESSAGE);
+//                }
             }
         });
 

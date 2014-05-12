@@ -16,7 +16,6 @@ public class IDE extends JFrame {
 
     private final Menu menu;
     private Console console;
-    private JToolBar consolePane;
 
     private JTextPane text;
     private File currentFile;
@@ -38,55 +37,33 @@ public class IDE extends JFrame {
     private void setup() {
         remove(menu);
 
-        add(text = new JTextPane());
-
         JScrollPane consoleScroll = new JScrollPane(console = new Console());
-        consoleScroll.setMaximumSize(new Dimension(getWidth(), 100));
         consoleScroll.setBorder(null);
-        consoleScroll.getVerticalScrollBar().setPreferredSize(new Dimension(0, 0));
+//        consoleScroll.getVerticalScrollBar().setPreferredSize(new Dimension(0, 0));
 
-        consolePane = new JToolBar();
-        consolePane.setMaximumSize(new Dimension(getWidth(), 100));
-        consolePane.setFloatable(false);
-        consolePane.setVisible(false);
-        consolePane.add(consoleScroll);
+        JSplitPane split = new JSplitPane(SwingConstants.HORIZONTAL);
+        split.setDividerLocation(getHeight() / 2);
+        split.setTopComponent(text = new JTextPane());
+        split.setBottomComponent(consoleScroll);
 
-        add(consolePane);
+        add(split);
 
         JMenuBar menuBar = new JMenuBar();
 
         final JMenu
                 file = new JMenu("File"),
-                settings = new JMenu("Settings"),
-                orientation = new JMenu("Console Orientation"),
                 help = new JMenu("Help");
 
         final JMenuItem
                 saveFile = new JMenuItem("Save"),
                 run = new JMenuItem("Run"),
-                closeConsole = new JMenuItem("Close Console"),
-                horizontal = new JRadioButtonMenuItem("Horizontal"),
-                vertical = new JRadioButtonMenuItem("Vertical"),
                 gitHub = new JMenuItem("GitHub Wiki");
 
         menuBar.add(file);
-        menuBar.add(settings);
         menuBar.add(help);
 
         file.add(saveFile);
         file.add(run);
-
-        settings.add(closeConsole);
-        settings.add(orientation);
-
-        ButtonGroup orientationGroup = new ButtonGroup();
-        orientationGroup.add(horizontal);
-        orientationGroup.add(vertical);
-
-        vertical.setSelected(true);
-
-        orientation.add(vertical);
-        orientation.add(horizontal);
 
         help.add(gitHub);
 
@@ -119,40 +96,7 @@ public class IDE extends JFrame {
         run.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (!consolePane.isVisible()) consolePane.setVisible(true);
-
                 console.run(text.getText());
-
-                if (horizontal.isSelected()) horizontal.doClick();
-                else vertical.doClick();
-            }
-        });
-
-        closeConsole.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, meta + KeyEvent.SHIFT_DOWN_MASK));
-        closeConsole.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                consolePane.setVisible(false);
-            }
-        });
-
-        vertical.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                boolean visible = consolePane.isVisible();
-                if (visible) consolePane.setVisible(false);
-                setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
-                if (visible) consolePane.setVisible(true);
-            }
-        });
-
-        horizontal.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                boolean visible = consolePane.isVisible();
-                if (visible) consolePane.setVisible(false);
-                setLayout(new BoxLayout(getContentPane(), BoxLayout.X_AXIS));
-                if (visible) consolePane.setVisible(true);
             }
         });
 
